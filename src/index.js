@@ -1,15 +1,14 @@
 #!/usr/bin/env node
 
-import inquirer from 'inquirer';
+import inquirer from "inquirer";
 
-import fedApi from './fedApi.js';
-import prompts from './prompts.js';
-import dl from './downloader.js';
-import { sanitize } from './utils.js';
+import fedApi from "./fedApi.js";
+import prompts from "./prompts.js";
+import dl from "./downloader.js";
+import { sanitize } from "./utils.js";
 
 (async function run() {
   if (!(await fedApi.tryExistingTokens())) {
-
     const { email, password } = await inquirer.prompt(prompts.login);
     const loginRes = await fedApi.login(email, password);
 
@@ -26,14 +25,18 @@ import { sanitize } from './utils.js';
     searchCourseRes = await fedApi.search(query);
 
     if (searchCourseRes.length < 1) {
-      console.log('No results found, try again.');
+      console.log("No results found, try again.");
     }
   }
 
   const list = searchCourseRes.map((course) => {
     const { title, instructors, hasCC, durationSeconds } = course;
     return {
-      name: `${title} - ${instructors[0].name} (${parseInt(durationSeconds / 3600)} hours, ${parseInt(durationSeconds / 60 % 60)} minutes) ${hasCC ? '[CC]' : ''}`,
+      name: `${title} - ${instructors[0].name} (${parseInt(
+        durationSeconds / 3600
+      )} hours, ${parseInt((durationSeconds / 60) % 60)} minutes) ${
+        hasCC ? "[CC]" : ""
+      }`,
       value: course,
     };
   });
@@ -42,15 +45,14 @@ import { sanitize } from './utils.js';
 
   const downloadList = await fedApi.course(course.hash);
 
-  dl.setDir( `./${sanitize(course.title)}/`);
+  dl.setDir(`./${sanitize(course.title)}/`);
   dl.setTotal(downloadList.length);
 
   for (const file of downloadList) {
     const { streamingURL, transcriptURL, pos, title } = file;
     if (transcriptURL) {
-      await dl.download( transcriptURL, pos, title, 'srt');
+      await dl.download(transcriptURL, pos, title, "srt");
     }
-    await dl.download( streamingURL, pos, title, 'mp4');
+    await dl.download(streamingURL, pos, title, "mp4");
   }
-
 })();
